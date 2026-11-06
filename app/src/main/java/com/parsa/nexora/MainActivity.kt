@@ -434,6 +434,8 @@ fun HomeScreen(
     var servers by remember { mutableStateOf(emptyList<Server>()) }
     var selected by remember { mutableStateOf("de-01") }
     var mode by remember { mutableStateOf("normal") }
+    var volume by remember { mutableStateOf("30 GB") }
+    var expiry by remember { mutableStateOf("30 days") }
     var apiStatus by remember { mutableStateOf("در حال اتصال...") }
     var loading by remember { mutableStateOf(true) }
 
@@ -614,6 +616,70 @@ fun HomeScreen(
             }
         }
 
+        Spacer(Modifier.height(22.dp))
+
+        Text(
+            "حجم کانفیگ",
+            color = White,
+            fontSize = 20.sp,
+            modifier = Modifier.align(Alignment.Start)
+        )
+
+        Spacer(Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            listOf(
+                "10 GB" to "۱۰ گیگ",
+                "30 GB" to "۳۰ گیگ",
+                "50 GB" to "۵۰ گیگ"
+            ).forEach { item ->
+                FilterChip(
+                    selected = volume == item.first,
+                    onClick = { volume = item.first },
+                    label = { Text(item.second) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Green,
+                        selectedLabelColor = Background
+                    )
+                )
+            }
+        }
+
+        Spacer(Modifier.height(22.dp))
+
+        Text(
+            "مدت اعتبار",
+            color = White,
+            fontSize = 20.sp,
+            modifier = Modifier.align(Alignment.Start)
+        )
+
+        Spacer(Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            listOf(
+                "30 days" to "۳۰ روزه",
+                "60 days" to "۶۰ روزه",
+                "90 days" to "۹۰ روزه"
+            ).forEach { item ->
+                FilterChip(
+                    selected = expiry == item.first,
+                    onClick = { expiry = item.first },
+                    label = { Text(item.second) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Green,
+                        selectedLabelColor = Background
+                    )
+                )
+            }
+        }
+
         Spacer(Modifier.height(25.dp))
 
         Button(
@@ -623,6 +689,8 @@ fun HomeScreen(
                         val data = JSONObject().apply {
                             put("server_id", selected)
                             put("mode", mode)
+                            put("volume", volume)
+                            put("expiry", expiry)
                             put("note", "درخواست از اپلیکیشن NEXORA")
                         }
 
@@ -677,7 +745,7 @@ fun HomeScreen(
         Spacer(Modifier.height(20.dp))
 
         Text(
-            "NEXORA VPN • Version 0.2.0",
+            "NEXORA VPN • Version 0.3.0",
             color = Gray,
             fontSize = 11.sp
         )
