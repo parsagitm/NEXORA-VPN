@@ -31,7 +31,7 @@ android {
 }
 
 dependencies {
-implementation(files("libs/libv2ray.aar"))
+    implementation(files("libs/libv2ray.aar"))
     val composeBom = platform("androidx.compose:compose-bom:2025.01.00")
     implementation(composeBom)
 
