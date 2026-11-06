@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
@@ -32,11 +33,13 @@ private val Panel = Color(0xFF141D25)
 private val Green = Color(0xFF00E676)
 private val White = Color.White
 private val Gray = Color(0xFF9EABB5)
+private val Red = Color(0xFFFF7070)
 
 private const val API =
     "https://nexora-api.parsakarimi92j.workers.dev"
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -71,7 +74,8 @@ private suspend fun apiRequest(
     token: String? = null
 ): JSONObject = withContext(Dispatchers.IO) {
 
-    val connection = URL("$API$path").openConnection() as HttpURLConnection
+    val connection =
+        URL("$API$path").openConnection() as HttpURLConnection
 
     try {
         connection.requestMethod = method
@@ -101,16 +105,19 @@ private suspend fun apiRequest(
         }
 
         val code = connection.responseCode
+
         val stream = if (code in 200..299) {
             connection.inputStream
         } else {
             connection.errorStream
         }
 
-        val response = stream?.bufferedReader()?.use { it.readText() }
-            ?: "{}"
+        val response = stream?.bufferedReader()?.use {
+            it.readText()
+        } ?: "{}"
 
         JSONObject(response)
+
     } finally {
         connection.disconnect()
     }
@@ -124,21 +131,34 @@ fun NexoraApp(
 ) {
     var token by remember { mutableStateOf(initialToken) }
     var authenticated by remember { mutableStateOf(false) }
-    var checkingSession by remember { mutableStateOf(initialToken.isNotBlank()) }
+    var checkingSession by remember {
+        mutableStateOf(initialToken.isNotBlank())
+    }
 
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(initialToken) {
         if (initialToken.isNotBlank()) {
             try {
-                apiRequest("/api/me", token = initialToken)
-                token = initialToken
-                authenticated = true
+                val result = apiRequest(
+                    "/api/me",
+                    token = initialToken
+                )
+
+                if (result.optBoolean("success")) {
+                    token = initialToken
+                    authenticated = true
+                } else {
+                    clearToken()
+                    token = ""
+                }
+
             } catch (_: Exception) {
                 clearToken()
                 token = ""
             }
         }
+
         checkingSession = false
     }
 
@@ -156,7 +176,7 @@ fun NexoraApp(
             when {
                 checkingSession -> {
                     Box(
-                        Modifier.fillMaxSize(),
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(color = Green)
@@ -201,6 +221,7 @@ fun NexoraApp(
 
 @Composable
 fun AuthScreen(onSuccess: (String) -> Unit) {
+
     var registerMode by remember { mutableStateOf(false) }
 
     var firstName by remember { mutableStateOf("") }
@@ -221,6 +242,7 @@ fun AuthScreen(onSuccess: (String) -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+
         Text(
             "NEXORA",
             color = Green,
@@ -248,29 +270,29 @@ fun AuthScreen(onSuccess: (String) -> Unit) {
 
         if (registerMode) {
             InputField(
-                firstName,
-                { firstName = it },
-                "نام"
+                value = firstName,
+                onValueChange = { firstName = it },
+                label = "نام"
             )
 
             InputField(
-                lastName,
-                { lastName = it },
-                "نام خانوادگی"
+                value = lastName,
+                onValueChange = { lastName = it },
+                label = "نام خانوادگی"
             )
         }
 
         InputField(
-            phone,
-            { phone = it },
-            "شماره موبایل",
+            value = phone,
+            onValueChange = { phone = it },
+            label = "شماره موبایل",
             keyboard = KeyboardType.Phone
         )
 
         InputField(
-            password,
-            { password = it },
-            "رمز عبور",
+            value = password,
+            onValueChange = { password = it },
+            label = "رمز عبور",
             password = true
         )
 
@@ -323,7 +345,10 @@ fun AuthScreen(onSuccess: (String) -> Unit) {
                         if (result.optBoolean("success")) {
                             val newToken = result.optString("token")
 
-                            if (newToken.isNotBlank() && newToken != "null") {
+                            if (
+                                newToken.isNotBlank() &&
+                                newToken != "null"
+                            ) {
                                 onSuccess(newToken)
                             } else {
                                 message = "توکن ورود از سرور دریافت نشد."
@@ -337,6 +362,7 @@ fun AuthScreen(onSuccess: (String) -> Unit) {
                                 )
                             )
                         }
+
                     } catch (e: Exception) {
                         message = "خطا در ارتباط با سرور: ${e.message}"
                     }
@@ -361,8 +387,7 @@ fun AuthScreen(onSuccess: (String) -> Unit) {
                 )
             } else {
                 Text(
-                    if (registerMode) "ثبت‌نام"
-                    else "ورود",
+                    if (registerMode) "ثبت‌نام" else "ورود",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -372,8 +397,11 @@ fun AuthScreen(onSuccess: (String) -> Unit) {
         Spacer(Modifier.height(15.dp))
 
         Text(
-            if (registerMode) "قبلاً حساب ساخته‌ای؟ ورود"
-            else "حساب کاربری نداری؟ ثبت‌نام",
+            if (registerMode) {
+                "قبلاً حساب ساخته‌ای؟ ورود"
+            } else {
+                "حساب کاربری نداری؟ ثبت‌نام"
+            },
             color = Green,
             modifier = Modifier.clickable {
                 registerMode = !registerMode
@@ -385,7 +413,7 @@ fun AuthScreen(onSuccess: (String) -> Unit) {
             Spacer(Modifier.height(18.dp))
             Text(
                 message,
-                color = Color(0xFFFF7070),
+                color = Red,
                 fontSize = 13.sp
             )
         }
@@ -408,11 +436,13 @@ fun InputField(
             .fillMaxWidth()
             .padding(vertical = 5.dp),
         singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboard),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = keyboard
+        ),
         visualTransformation = if (password) {
             PasswordVisualTransformation()
         } else {
-            androidx.compose.ui.text.input.VisualTransformation.None
+            VisualTransformation.None
         },
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = White,
@@ -431,13 +461,24 @@ fun HomeScreen(
     token: String,
     onLogout: () -> Unit
 ) {
-    var servers by remember { mutableStateOf(emptyList<Server>()) }
+    var servers by remember {
+        mutableStateOf(emptyList<Server>())
+    }
+
     var selected by remember { mutableStateOf("de-01") }
     var mode by remember { mutableStateOf("normal") }
-    var volume by remember { mutableStateOf("30 GB") }
-    var expiry by remember { mutableStateOf("30 days") }
-    var apiStatus by remember { mutableStateOf("در حال اتصال...") }
+
+    var volumeInput by remember { mutableStateOf("30") }
+    var expiryInput by remember { mutableStateOf("30") }
+    var note by remember { mutableStateOf("") }
+
+    var apiStatus by remember {
+        mutableStateOf("در حال اتصال...")
+    }
+
     var loading by remember { mutableStateOf(true) }
+    var sendingRequest by remember { mutableStateOf(false) }
+    var showRequestDialog by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
 
@@ -449,20 +490,22 @@ fun HomeScreen(
 
             for (i in 0 until array.length()) {
                 val item = array.getJSONObject(i)
+
                 list.add(
                     Server(
-                        item.getString("id"),
-                        item.getString("name"),
-                        item.getString("flag"),
-                        item.getString("status")
+                        id = item.getString("id"),
+                        name = item.getString("name"),
+                        flag = item.getString("flag"),
+                        status = item.getString("status")
                     )
                 )
             }
 
             servers = list
             apiStatus = "متصل"
+
         } catch (_: Exception) {
-            apiStatus = "خطا در اتصال"
+            apiStatus = "خطا در دریافت سرورها"
         }
 
         loading = false
@@ -475,6 +518,7 @@ fun HomeScreen(
             .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+
         Spacer(Modifier.height(20.dp))
 
         Text(
@@ -499,7 +543,7 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
-                Modifier.padding(20.dp),
+                modifier = Modifier.padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text("وضعیت VPN", color = Gray)
@@ -537,9 +581,13 @@ fun HomeScreen(
         if (loading) {
             CircularProgressIndicator(color = Green)
         } else if (servers.isEmpty()) {
-            Text("سرورها دریافت نشدند", color = Gray)
+            Text(
+                "سرورها دریافت نشدند",
+                color = Gray
+            )
         } else {
             servers.forEach { server ->
+
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -548,8 +596,11 @@ fun HomeScreen(
                             selected = server.id
                         },
                     colors = CardDefaults.cardColors(
-                        containerColor = if (selected == server.id)
-                            Color(0xFF18352A) else Panel
+                        containerColor = if (selected == server.id) {
+                            Color(0xFF18352A)
+                        } else {
+                            Panel
+                        }
                     ),
                     shape = RoundedCornerShape(14.dp)
                 ) {
@@ -557,16 +608,27 @@ fun HomeScreen(
                         modifier = Modifier.padding(15.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(server.flag, fontSize = 25.sp)
+                        Text(
+                            server.flag,
+                            fontSize = 25.sp
+                        )
 
                         Spacer(Modifier.width(12.dp))
 
-                        Column(Modifier.weight(1f)) {
-                            Text(server.name, color = White)
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Text(
-                                if (server.status == "coming_soon")
+                                server.name,
+                                color = White
+                            )
+
+                            Text(
+                                if (server.status == "coming_soon") {
                                     "به‌زودی"
-                                else "آماده",
+                                } else {
+                                    "آماده"
+                                },
                                 color = Gray,
                                 fontSize = 12.sp
                             )
@@ -574,7 +636,9 @@ fun HomeScreen(
 
                         RadioButton(
                             selected = selected == server.id,
-                            onClick = { selected = server.id },
+                            onClick = {
+                                selected = server.id
+                            },
                             colors = RadioButtonDefaults.colors(
                                 selectedColor = Green
                             )
@@ -604,74 +668,15 @@ fun HomeScreen(
                 "game" to "بازی",
                 "social" to "اجتماعی"
             ).forEach { item ->
+
                 FilterChip(
                     selected = mode == item.first,
-                    onClick = { mode = item.first },
-                    label = { Text(item.second) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Green,
-                        selectedLabelColor = Background
-                    )
-                )
-            }
-        }
-
-        Spacer(Modifier.height(22.dp))
-
-        Text(
-            "حجم کانفیگ",
-            color = White,
-            fontSize = 20.sp,
-            modifier = Modifier.align(Alignment.Start)
-        )
-
-        Spacer(Modifier.height(10.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            listOf(
-                "10 GB" to "۱۰ گیگ",
-                "30 GB" to "۳۰ گیگ",
-                "50 GB" to "۵۰ گیگ"
-            ).forEach { item ->
-                FilterChip(
-                    selected = volume == item.first,
-                    onClick = { volume = item.first },
-                    label = { Text(item.second) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Green,
-                        selectedLabelColor = Background
-                    )
-                )
-            }
-        }
-
-        Spacer(Modifier.height(22.dp))
-
-        Text(
-            "مدت اعتبار",
-            color = White,
-            fontSize = 20.sp,
-            modifier = Modifier.align(Alignment.Start)
-        )
-
-        Spacer(Modifier.height(10.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            listOf(
-                "30 days" to "۳۰ روزه",
-                "60 days" to "۶۰ روزه",
-                "90 days" to "۹۰ روزه"
-            ).forEach { item ->
-                FilterChip(
-                    selected = expiry == item.first,
-                    onClick = { expiry = item.first },
-                    label = { Text(item.second) },
+                    onClick = {
+                        mode = item.first
+                    },
+                    label = {
+                        Text(item.second)
+                    },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Green,
                         selectedLabelColor = Background
@@ -682,44 +687,54 @@ fun HomeScreen(
 
         Spacer(Modifier.height(25.dp))
 
-        Button(
-            onClick = {
-                scope.launch {
-                    try {
-                        val data = JSONObject().apply {
-                            put("server_id", selected)
-                            put("mode", mode)
-                            put("volume", volume)
-                            put("expiry", expiry)
-                            put("note", "درخواست از اپلیکیشن NEXORA")
-                        }
-
-                        val result = apiRequest(
-                            "/api/config-request",
-                            "POST",
-                            data,
-                            token
-                        )
-
-                        apiStatus = if (result.optBoolean("success")) {
-                            "درخواست ثبت شد"
-                        } else {
-                            result.optString("message", "خطا در ثبت درخواست")
-                        }
-                    } catch (e: Exception) {
-                        apiStatus = "خطا: ${e.message}"
-                    }
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(55.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Green,
-                contentColor = Background
-            )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = Panel
+            ),
+            shape = RoundedCornerShape(16.dp)
         ) {
-            Text("درخواست کانفیگ جدید")
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    "درخواست کانفیگ",
+                    color = White,
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                Text(
+                    "حجم و مدت اعتبار را هنگام ثبت درخواست خودت مشخص می‌کنی.",
+                    color = Gray,
+                    fontSize = 13.sp
+                )
+
+                Spacer(Modifier.height(15.dp))
+
+                Button(
+                    onClick = {
+                        volumeInput = "30"
+                        expiryInput = "30"
+                        note = ""
+                        showRequestDialog = true
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Green,
+                        contentColor = Background
+                    )
+                ) {
+                    Text(
+                        "ساخت کانفیگ جدید",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
 
         Spacer(Modifier.height(15.dp))
@@ -736,7 +751,7 @@ fun HomeScreen(
             onClick = onLogout,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = Color(0xFFFF7070)
+                contentColor = Red
             )
         ) {
             Text("خروج از حساب کاربری")
@@ -745,9 +760,261 @@ fun HomeScreen(
         Spacer(Modifier.height(20.dp))
 
         Text(
-            "NEXORA VPN • Version 0.3.0",
+            "NEXORA VPN • Version 0.4.0",
             color = Gray,
             fontSize = 11.sp
+        )
+    }
+
+    if (showRequestDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!sendingRequest) {
+                    showRequestDialog = false
+                }
+            },
+            containerColor = Panel,
+            title = {
+                Text(
+                    "درخواست کانفیگ جدید",
+                    color = Green,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        "حجم موردنیاز را به گیگابایت وارد کن.",
+                        color = Gray,
+                        fontSize = 13.sp
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = volumeInput,
+                        onValueChange = {
+                            if (
+                                it.length <= 6 &&
+                                it.all { char -> char.isDigit() }
+                            ) {
+                                volumeInput = it
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = {
+                            Text("حجم به گیگابایت")
+                        },
+                        suffix = {
+                            Text("GB")
+                        },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number
+                        ),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = White,
+                            unfocusedTextColor = White,
+                            focusedBorderColor = Green,
+                            unfocusedBorderColor = Gray,
+                            focusedLabelColor = Green,
+                            unfocusedLabelColor = Gray,
+                            cursorColor = Green
+                        )
+                    )
+
+                    Spacer(Modifier.height(15.dp))
+
+                    Text(
+                        "مدت اعتبار را به روز وارد کن.",
+                        color = Gray,
+                        fontSize = 13.sp
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = expiryInput,
+                        onValueChange = {
+                            if (
+                                it.length <= 4 &&
+                                it.all { char -> char.isDigit() }
+                            ) {
+                                expiryInput = it
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = {
+                            Text("مدت اعتبار")
+                        },
+                        suffix = {
+                            Text("روز")
+                        },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number
+                        ),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = White,
+                            unfocusedTextColor = White,
+                            focusedBorderColor = Green,
+                            unfocusedBorderColor = Gray,
+                            focusedLabelColor = Green,
+                            unfocusedLabelColor = Gray,
+                            cursorColor = Green
+                        )
+                    )
+
+                    Spacer(Modifier.height(15.dp))
+
+                    OutlinedTextField(
+                        value = note,
+                        onValueChange = {
+                            if (it.length <= 1000) {
+                                note = it
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = {
+                            Text("توضیحات (اختیاری)")
+                        },
+                        minLines = 2,
+                        maxLines = 4,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = White,
+                            unfocusedTextColor = White,
+                            focusedBorderColor = Green,
+                            unfocusedBorderColor = Gray,
+                            focusedLabelColor = Green,
+                            unfocusedLabelColor = Gray,
+                            cursorColor = Green
+                        )
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Text(
+                        "سرور انتخاب‌شده: $selected",
+                        color = Gray,
+                        fontSize = 12.sp
+                    )
+
+                    Text(
+                        "حالت اتصال: $mode",
+                        color = Gray,
+                        fontSize = 12.sp
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    enabled = !sendingRequest,
+                    onClick = {
+                        val volumeNumber =
+                            volumeInput.toIntOrNull()
+
+                        val expiryNumber =
+                            expiryInput.toIntOrNull()
+
+                        if (
+                            volumeNumber == null ||
+                            volumeNumber !in 1..100000
+                        ) {
+                            apiStatus =
+                                "حجم باید بین ۱ تا ۱۰۰۰۰۰ گیگابایت باشد."
+                        } else if (
+                            expiryNumber == null ||
+                            expiryNumber !in 1..3650
+                        ) {
+                            apiStatus =
+                                "مدت اعتبار باید بین ۱ تا ۳۶۵۰ روز باشد."
+                        } else {
+                            sendingRequest = true
+
+                            scope.launch {
+                                try {
+                                    val data = JSONObject().apply {
+                                        put("server_id", selected)
+                                        put("mode", mode)
+                                        put("volume", "$volumeNumber GB")
+                                        put("expiry", "$expiryNumber days")
+                                        put("note", note.trim())
+                                    }
+
+                                    val result = apiRequest(
+                                        "/api/config-request",
+                                        "POST",
+                                        data,
+                                        token
+                                    )
+
+                                    if (result.optBoolean("success")) {
+                                        val requestId =
+                                            result.optString(
+                                                "request_id",
+                                                "-"
+                                            )
+
+                                        val emailSent =
+                                            result.optBoolean("email_sent")
+
+                                        apiStatus = if (emailSent) {
+                                            "درخواست شماره $requestId ثبت شد و ایمیل ارسال شد."
+                                        } else {
+                                            "درخواست شماره $requestId ثبت شد؛ اما ارسال ایمیل ناموفق بود."
+                                        }
+
+                                        showRequestDialog = false
+                                    } else {
+                                        apiStatus = result.optString(
+                                            "message",
+                                            result.optString(
+                                                "error",
+                                                "ثبت درخواست ناموفق بود."
+                                            )
+                                        )
+                                    }
+                                } catch (e: Exception) {
+                                    apiStatus =
+                                        "خطا در ارسال درخواست: ${e.message}"
+                                }
+
+                                sendingRequest = false
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Green,
+                        contentColor = Background
+                    )
+                ) {
+                    if (sendingRequest) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Background
+                        )
+                    } else {
+                        Text("ارسال درخواست")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    enabled = !sendingRequest,
+                    onClick = {
+                        showRequestDialog = false
+                    }
+                ) {
+                    Text(
+                        "انصراف",
+                        color = Gray
+                    )
+                }
+            }
         )
     }
 }
