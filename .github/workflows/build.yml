@@ -25,6 +25,11 @@ jobs:
         with:
           gradle-version: 8.9
 
+      - name: Download Xray Engine
+        run: |
+          mkdir -p app/libs
+          curl -fL "https://github.com/2dust/AndroidLibXrayLite/releases/download/v26.10.31/libv2ray.aar" -o app/libs/libv2ray.aar
+
       - name: Build APK
         run: gradle --no-daemon assembleDebug
 
@@ -33,3 +38,4 @@ jobs:
         with:
           name: NEXORA-APK
           path: app/build/outputs/apk/debug/app-debug.apk
+          
