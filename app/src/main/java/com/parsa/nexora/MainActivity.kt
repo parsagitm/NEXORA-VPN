@@ -756,7 +756,120 @@ fun HomeScreen(
         }
 
         Spacer(Modifier.height(15.dp))
+Spacer(Modifier.height(18.dp))
 
+Card(
+    modifier = Modifier.fillMaxWidth(),
+    colors = CardDefaults.cardColors(
+        containerColor = Panel
+    ),
+    shape = RoundedCornerShape(16.dp)
+) {
+    Column(
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Text(
+            "کانفیگ من",
+            color = White,
+            fontSize = 19.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            "کانفیگی را که از مدیر دریافت کرده‌ای، اینجا وارد کن.",
+            color = Gray,
+            fontSize = 13.sp
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = configText,
+            onValueChange = {
+                configText = it
+                configMessage = ""
+            },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("متن کانفیگ") },
+            minLines = 3,
+            maxLines = 6
+        )
+
+        Spacer(Modifier.height(10.dp))
+
+        OutlinedButton(
+            onClick = {
+                val clipboard = context.getSystemService(
+                    android.content.Context.CLIPBOARD_SERVICE
+                ) as android.content.ClipboardManager
+
+                val clip = clipboard.primaryClip
+
+                if (clip != null && clip.itemCount > 0) {
+                    configText = clip.getItemAt(0)
+                        .coerceToText(context).toString()
+
+                    configMessage = if (configText.isBlank()) {
+                        "کلیپ‌بورد خالی است."
+                    } else {
+                        "کانفیگ وارد شد؛ حالا ذخیره کن."
+                    }
+                } else {
+                    configMessage = "کلیپ‌بورد خالی است."
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("چسباندن از کلیپ‌بورد")
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Button(
+            onClick = {
+                if (configText.isBlank()) {
+                    configMessage = "ابتدا کانفیگ را وارد کن."
+                } else {
+                    configPrefs.edit()
+                        .putString("config_text", configText.trim())
+                        .apply()
+
+                    configText = configText.trim()
+                    configMessage = "کانفیگ با موفقیت ذخیره شد."
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Green,
+                contentColor = Background
+            )
+        ) {
+            Text("ذخیره کانفیگ")
+        }
+
+        if (configMessage.isNotBlank()) {
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                configMessage,
+                color = Green,
+                fontSize = 12.sp
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            "اتصال واقعی پس از اضافه شدن موتور VPN فعال می‌شود.",
+            color = Gray,
+            fontSize = 12.sp
+        )
+    }
+}
+
+Spacer(Modifier.height(15.dp))
         Text(
             "وضعیت API: $apiStatus",
             color = Green,
