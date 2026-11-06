@@ -1,6 +1,7 @@
 package com.parsa.nexora
 
 import android.os.Bundle
+import androidx.compose.ui.platform.LocalContext
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -134,7 +135,24 @@ fun NexoraApp(
     var checkingSession by remember {
         mutableStateOf(initialToken.isNotBlank())
     }
+val context = LocalContext.current
 
+val configPrefs = remember {
+    context.getSharedPreferences(
+        "nexora_config",
+        android.content.Context.MODE_PRIVATE
+    )
+}
+
+var configText by remember {
+    mutableStateOf(
+        configPrefs.getString("config_text", "") ?: ""
+    )
+}
+
+var configMessage by remember {
+    mutableStateOf("")
+}
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(initialToken) {
