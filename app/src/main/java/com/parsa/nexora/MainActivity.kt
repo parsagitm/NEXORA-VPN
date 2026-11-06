@@ -27,7 +27,7 @@ private val White = Color(0xFFFFFFFF)
 private val Gray = Color(0xFF9EABC2)
 
 private const val API =
-    "https://nexora-api.parsaprogrammer6.workers.dev"
+    "https://nexora-api.parsakarimi92j.workers.dev"
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
