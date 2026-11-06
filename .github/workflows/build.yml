@@ -27,7 +27,7 @@ jobs:
 
       - name: Download Xray Engine
         run: |
-          mkdir -p app/libs
+          mkdir -p app/libs || true
           curl -fL "https://github.com/2dust/AndroidLibXrayLite/releases/download/v26.10.31/libv2ray.aar" -o app/libs/libv2ray.aar
 
       - name: Build APK
