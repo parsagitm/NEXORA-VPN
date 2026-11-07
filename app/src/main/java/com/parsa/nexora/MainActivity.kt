@@ -753,7 +753,7 @@ private fun HomeScreen(token: String, onLogout: () -> Unit) {
             Text("خروج از حساب کاربری")
         }
         Spacer(Modifier.height(18.dp))
-        Text("NEXORA VPN • Version 0.6.0", color = Gray, fontSize = 11.sp)
+        Text("NEXORA VPN • Version 0.1.0", color = Gray, fontSize = 11.sp)
     }
 
     if (showRequestDialog) {
