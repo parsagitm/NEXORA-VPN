@@ -3,8 +3,8 @@ package com.parsa.nexora
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
@@ -21,7 +21,11 @@ class NexoraVpnService : VpnService() {
     companion object {
         const val ACTION_START = "com.parsa.nexora.START_VPN"
         const val ACTION_STOP = "com.parsa.nexora.STOP_VPN"
+        const val ACTION_STATUS = "com.parsa.nexora.VPN_STATUS"
+
         const val EXTRA_CONFIG_JSON = "config_json"
+        const val EXTRA_STATUS = "status"
+        const val EXTRA_MESSAGE = "message"
 
         private const val CHANNEL_ID = "nexora_vpn"
         private const val NOTIFICATION_ID = 1001
@@ -41,40 +45,49 @@ class NexoraVpnService : VpnService() {
         startId: Int
     ): Int {
 
-        if (intent?.action == ACTION_STOP) {
-            stopVpn()
-            return START_NOT_STICKY
-        }
+        when (intent?.action) {
 
-        if (intent?.action != ACTION_START) {
-            stopSelf()
-            return START_NOT_STICKY
-        }
+            ACTION_STOP -> {
+                stopVpn()
+                return START_NOT_STICKY
+            }
 
-        val configJson = intent.getStringExtra(EXTRA_CONFIG_JSON)
+            ACTION_START -> {
+                val configJson =
+                    intent.getStringExtra(EXTRA_CONFIG_JSON)
 
-        if (configJson.isNullOrBlank()) {
-            stopSelf()
-            return START_NOT_STICKY
-        }
-
-        try {
-            JSONObject(configJson)
-
-            startForeground(
-                NOTIFICATION_ID,
-                createNotification(),
-                if (Build.VERSION.SDK_INT >= 34) {
-                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-                } else {
-                    0
+                if (configJson.isNullOrBlank()) {
+                    reportStatus("error", "کانفیگ خالی است.")
+                    stopVpn()
+                    return START_NOT_STICKY
                 }
-            )
 
-            startVpn(configJson)
+                try {
+                    startForeground(
+                        NOTIFICATION_ID,
+                        createNotification(),
+                        if (Build.VERSION.SDK_INT >= 34) {
+                            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                        } else {
+                            0
+                        }
+                    )
 
-        } catch (e: Exception) {
-            stopVpn()
+                    startVpn(configJson)
+
+                } catch (e: Exception) {
+                    reportStatus(
+                        "error",
+                        e.message ?: "خطای ناشناخته در اتصال"
+                    )
+                    stopVpn()
+                }
+            }
+
+            else -> {
+                stopSelf()
+                return START_NOT_STICKY
+            }
         }
 
         return START_NOT_STICKY
@@ -83,8 +96,45 @@ class NexoraVpnService : VpnService() {
     private fun startVpn(configJson: String) {
 
         if (VpnService.prepare(this) != null) {
-            stopVpn()
-            return
+            throw IllegalStateException(
+                "ابتدا باید مجوز VPN از اندروید گرفته شود."
+            )
+        }
+
+        val json = JSONObject(configJson)
+
+        val inbounds = json.optJSONArray("inbounds")
+            ?: throw IllegalArgumentException(
+                "بخش inbounds در کانفیگ وجود ندارد."
+            )
+
+        val outbounds = json.optJSONArray("outbounds")
+            ?: throw IllegalArgumentException(
+                "بخش outbounds در کانفیگ وجود ندارد."
+            )
+
+        var hasTun = false
+
+        for (i in 0 until inbounds.length()) {
+            if (
+                inbounds.getJSONObject(i)
+                    .optString("protocol") == "tun"
+            ) {
+                hasTun = true
+                break
+            }
+        }
+
+        if (!hasTun) {
+            throw IllegalArgumentException(
+                "ورودی TUN در کانفیگ وجود ندارد."
+            )
+        }
+
+        if (outbounds.length() == 0) {
+            throw IllegalArgumentException(
+                "هیچ خروجی سروری در کانفیگ وجود ندارد."
+            )
         }
 
         val builder = Builder()
@@ -95,7 +145,9 @@ class NexoraVpnService : VpnService() {
             .addDnsServer("1.1.1.1")
 
         vpnInterface = builder.establish()
-            ?: throw IllegalStateException("ساخت تونل VPN ناموفق بود")
+            ?: throw IllegalStateException(
+                "ساخت تونل VPN ناموفق بود."
+            )
 
         Seq.setContext(applicationContext)
 
@@ -105,11 +157,15 @@ class NexoraVpnService : VpnService() {
         ) ?: "nexora-device"
 
         val deviceId = Base64.encodeToString(
-            androidId.toByteArray(Charsets.UTF_8).copyOf(32),
+            androidId.toByteArray(Charsets.UTF_8)
+                .copyOf(32),
             Base64.NO_PADDING or Base64.URL_SAFE
         )
 
-        val assetPath = getDir("assets", MODE_PRIVATE).absolutePath
+        val assetPath = getDir(
+            "assets",
+            MODE_PRIVATE
+        ).absolutePath
 
         Libv2ray.initCoreEnv(assetPath, deviceId)
 
@@ -127,23 +183,51 @@ class NexoraVpnService : VpnService() {
                 code: Long,
                 message: String?
             ): Long {
+                reportStatus(
+                    if (code == 0L) "running" else "error",
+                    message ?: ""
+                )
                 return 0
             }
         }
 
-        coreController = Libv2ray.newCoreController(callback)
+        coreController =
+            Libv2ray.newCoreController(callback)
 
         val fd = vpnInterface?.fd
-            ?: throw IllegalStateException("شناسه تونل VPN پیدا نشد")
+            ?: throw IllegalStateException(
+                "شناسه تونل VPN پیدا نشد."
+            )
 
         coreController?.startLoop(configJson, fd)
 
         if (coreController?.isRunning != true) {
-            throw IllegalStateException("موتور Xray اجرا نشد")
+            throw IllegalStateException(
+                "موتور Xray اجرا نشد."
+            )
         }
+
+        reportStatus(
+            "running",
+            "موتور VPN اجرا شد."
+        )
+    }
+
+    private fun reportStatus(
+        status: String,
+        message: String
+    ) {
+        val intent = Intent(ACTION_STATUS).apply {
+            setPackage(packageName)
+            putExtra(EXTRA_STATUS, status)
+            putExtra(EXTRA_MESSAGE, message)
+        }
+
+        sendBroadcast(intent)
     }
 
     private fun stopVpn() {
+
         try {
             coreController?.stopLoop()
         } catch (_: Exception) {
@@ -159,32 +243,41 @@ class NexoraVpnService : VpnService() {
         vpnInterface = null
 
         stopForeground(STOP_FOREGROUND_REMOVE)
+
+        reportStatus(
+            "disconnected",
+            "اتصال VPN قطع شد."
+        )
+
         stopSelf()
     }
 
     private fun createNotificationChannel() {
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "NEXORA VPN",
                 NotificationManager.IMPORTANCE_LOW
             )
 
-            val manager = getSystemService(
-                NotificationManager::class.java
-            )
+            val manager =
+                getSystemService(NotificationManager::class.java)
 
             manager.createNotificationChannel(channel)
         }
     }
 
     private fun createNotification(): Notification {
-        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, CHANNEL_ID)
-        } else {
-            @Suppress("DEPRECATION")
-            Notification.Builder(this)
-        }
+
+        val builder =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Notification.Builder(this, CHANNEL_ID)
+            } else {
+                @Suppress("DEPRECATION")
+                Notification.Builder(this)
+            }
 
         return builder
             .setContentTitle("NEXORA VPN")
@@ -200,7 +293,19 @@ class NexoraVpnService : VpnService() {
     }
 
     override fun onDestroy() {
-        stopVpn()
+        try {
+            coreController?.stopLoop()
+        } catch (_: Exception) {
+        }
+
+        try {
+            vpnInterface?.close()
+        } catch (_: Exception) {
+        }
+
+        coreController = null
+        vpnInterface = null
+
         super.onDestroy()
     }
 }
