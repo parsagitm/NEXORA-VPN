@@ -445,7 +445,7 @@ private fun HomeScreen(
             intent
         )
 
-        vpnStatus = "connecting"
+        vpnStatus == "connected" || vpnStatus == "running"
         vpnMessage = "در حال اتصال..."
     }
 }
@@ -548,14 +548,16 @@ val vpnPermissionLauncher = rememberLauncherForActivityResult(
                 .size(150.dp)
                 .clip(CircleShape)
                 .background(
-                    if (vpnStatus == "connected")
+                    if (vpnStatus == "connected" || vpnStatus == "running")
                         Color(0xFF087F5B)
                     else
                         Color(0xFF263445)
                 )
                 .clickable {
-                    if (vpnStatus == "connected" ||
-                        vpnStatus == "connecting"
+                   if (vpnStatus == "connected" ||
+                       vpnStatus == "running" ||
+                       vpnStatus == "connecting"
+)
                     ) {
                         disconnectVpn()
                     } else {
@@ -568,7 +570,7 @@ val vpnPermissionLauncher = rememberLauncherForActivityResult(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    if (vpnStatus == "connected") "قطع اتصال"
+                    if (vpnStatus == "connected" || vpnStatus == "running") "قطع اتصال"
                     else if (vpnStatus == "connecting") "در حال اتصال"
                     else "اتصال",
                     color = White,
@@ -596,14 +598,16 @@ val vpnPermissionLauncher = rememberLauncherForActivityResult(
 
         Text(
             when (vpnStatus) {
-                "connected" -> "متصل"
-                "connecting" -> "در حال برقراری ارتباط"
-                else -> "قطع شده"
-            },
-            color = if (vpnStatus == "connected")
-                Color(0xFF20C997)
-            else
-                Gray,
+    "connected", "running" -> "متصل"
+    "connecting" -> "در حال برقراری ارتباط"
+    "error" -> "خطا در اتصال"
+    else -> "قطع شده"
+},
+color = when (vpnStatus) {
+    "connected", "running" -> Color(0xFF20C997)
+    "error" -> Color.Red
+    else -> Gray
+},
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold
         )
