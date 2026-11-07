@@ -183,19 +183,19 @@ object VlessConfigParser {
 
         val tunInbound = JSONObject().apply {
 
-            put("tag", "tun")
-            put("protocol", "tun")
+    put("tag", "tun")
+    put("protocol", "tun")
 
-            put(
-                "settings",
-                JSONObject().apply {
-                    put("name", "xray0")
-                    put("MTU", 1500)
-                    put("userLevel", 8)
-                }
-            )
+    put(
+        "settings",
+        JSONObject().apply {
+            put("name", "xray0")
+            put("MTU", 1500)
+            put("userLevel", 8)
+            put("autoOutboundsInterface", "auto")
         }
-
+    )
+}
         val proxyOutbound = JSONObject().apply {
 
             put("tag", "proxy")
