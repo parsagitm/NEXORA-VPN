@@ -458,6 +458,15 @@ val vpnPermissionLauncher = rememberLauncherForActivityResult(
         vpnMessage = "مجوز اتصال VPN رد شد."
     }
 }
+    val vpnPermissionLauncher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.StartActivityForResult()
+) { result ->
+    if (result.resultCode == Activity.RESULT_OK) {
+        startVpn()
+    } else {
+        vpnMessage = "مجوز اتصال VPN رد شد."
+    }
+}
     var servers by remember { mutableStateOf(emptyList<Server>()) }
     var selected by remember { mutableStateOf("de-01") }
     var mode by remember { mutableStateOf("normal") }
@@ -512,31 +521,94 @@ val vpnPermissionLauncher = rememberLauncherForActivityResult(
         Text("پنل کاربری", color = Gray)
         Spacer(Modifier.height(22.dp))
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Panel),
-            shape = RoundedCornerShape(20.dp)
+       Card(
+    modifier = Modifier.fillMaxWidth(),
+    colors = CardDefaults.cardColors(
+        containerColor = Panel
+    ),
+    shape = RoundedCornerShape(20.dp)
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            "NEXORA VPN",
+            color = White,
+            fontSize = 21.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(Modifier.height(20.dp))
+
+        Box(
+            modifier = Modifier
+                .size(150.dp)
+                .clip(CircleShape)
+                .background(
+                    if (vpnStatus == "connected")
+                        Color(0xFF087F5B)
+                    else
+                        Color(0xFF263445)
+                )
+                .clickable {
+                    if (vpnStatus == "connected" ||
+                        vpnStatus == "connecting"
+                    ) {
+                        disconnectVpn()
+                    } else {
+                        connectVpn()
+                    }
+                },
+            contentAlignment = Alignment.Center
         ) {
             Column(
-                modifier = Modifier.padding(18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("وضعیت VPN", color = Gray)
-                Spacer(Modifier.height(10.dp))
                 Text(
-                    "غیرفعال",
+                    if (vpnStatus == "connected") "قطع اتصال"
+                    else if (vpnStatus == "connecting") "در حال اتصال"
+                    else "اتصال",
                     color = White,
-                    fontSize = 25.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(Modifier.height(8.dp))
+
                 Text(
-                    "اتصال واقعی VPN هنوز پیکربندی نشده است.",
-                    color = Gray,
-                    fontSize = 12.sp
+                    "NEXORA",
+                    color = White,
+                    fontSize = 14.sp
                 )
             }
         }
+
+        Spacer(Modifier.height(18.dp))
+
+        Text(
+            vpnMessage,
+            color = Gray,
+            fontSize = 13.sp
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            when (vpnStatus) {
+                "connected" -> "متصل"
+                "connecting" -> "در حال برقراری ارتباط"
+                else -> "قطع شده"
+            },
+            color = if (vpnStatus == "connected")
+                Color(0xFF20C997)
+            else
+                Gray,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
 
         Spacer(Modifier.height(22.dp))
         SectionTitle("انتخاب سرور")
