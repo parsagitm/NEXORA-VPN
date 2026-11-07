@@ -150,6 +150,7 @@ class NexoraVpnService : VpnService() {
         }
 
         val builder = Builder()
+            .addDisallowedApplication(packageName)
             .setSession("NEXORA VPN")
             .setMtu(1500)
             .addAddress("10.0.0.2", 30)
