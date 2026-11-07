@@ -1,5 +1,16 @@
 package com.parsa.nexora
 
+import android.app.Activity
+import android.content.BroadcastReceiver
+import android.content.Intent
+import android.content.IntentFilter
+import android.net.VpnService
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -380,7 +391,8 @@ private fun HomeScreen(
         mutableStateOf(configPrefs.getString("config_text", "") ?: "")
     }
     var configMessage by remember { mutableStateOf("") }
-
+    var vpnStatus by remember { mutableStateOf("disconnected") }
+    var vpnMessage by remember { mutableStateOf("آماده اتصال") }
     var servers by remember { mutableStateOf(emptyList<Server>()) }
     var selected by remember { mutableStateOf("de-01") }
     var mode by remember { mutableStateOf("normal") }
