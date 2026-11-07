@@ -386,6 +386,7 @@ private fun HomeScreen(
     var mode by remember { mutableStateOf("normal") }
     var volumeInput by remember { mutableStateOf("30") }
     var expiryInput by remember { mutableStateOf("30") }
+    var deviceCountInput by remember { mutableStateOf("1") }
     var note by remember { mutableStateOf("") }
     var apiStatus by remember { mutableStateOf("در حال اتصال...") }
     var loading by remember { mutableStateOf(true) }
