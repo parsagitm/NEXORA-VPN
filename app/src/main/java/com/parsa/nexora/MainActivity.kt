@@ -765,6 +765,7 @@ private fun HomeScreen(
                     onClick = {
                         val volume = volumeInput.toIntOrNull()
                         val expiry = expiryInput.toIntOrNull()
+                        val deviceCount = deviceCountlnput.tolntOrNull() ?: 0
                         when {
                             volume == null || volume !in 1..100000 ->
                                 apiStatus = "حجم باید بین ۱ تا ۱۰۰۰۰۰ باشد."
