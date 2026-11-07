@@ -555,6 +555,7 @@ private fun HomeScreen(
                     onClick = {
                         volumeInput = "30"
                         expiryInput = "30"
+                        deviceCountInput = "1"
                         note = ""
                         showRequestDialog = true
                     },
