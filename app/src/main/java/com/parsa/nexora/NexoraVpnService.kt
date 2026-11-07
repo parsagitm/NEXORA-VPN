@@ -1,3 +1,4 @@
+
 package com.parsa.nexora
 
 import android.app.Notification
@@ -10,6 +11,7 @@ import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.provider.Settings
 import android.util.Base64
+import android.util.Log
 import go.Seq
 import libv2ray.CoreCallbackHandler
 import libv2ray.CoreController
@@ -29,6 +31,7 @@ class NexoraVpnService : VpnService() {
 
         private const val CHANNEL_ID = "nexora_vpn"
         private const val NOTIFICATION_ID = 1001
+        private const val TAG = "NEXORA_VPN"
     }
 
     private var vpnInterface: ParcelFileDescriptor? = null
@@ -57,8 +60,8 @@ class NexoraVpnService : VpnService() {
                     intent.getStringExtra(EXTRA_CONFIG_JSON)
 
                 if (configJson.isNullOrBlank()) {
+                    stopVpn(false)
                     reportStatus("error", "کانفیگ خالی است.")
-                    stopVpn()
                     return START_NOT_STICKY
                 }
 
@@ -76,11 +79,20 @@ class NexoraVpnService : VpnService() {
                     startVpn(configJson)
 
                 } catch (e: Exception) {
+
+                    val errorMessage =
+                        e.message?.takeIf { it.isNotBlank() }
+                            ?: e.javaClass.simpleName
+                            ?: "خطای ناشناخته در اتصال"
+
+                    Log.e(TAG, "VPN startup failed", e)
+
+                    stopVpn(false)
+
                     reportStatus(
                         "error",
-                        e.message ?: "خطای ناشناخته در اتصال"
+                        "خطای اتصال: $errorMessage"
                     )
-                    stopVpn()
                 }
             }
 
@@ -183,10 +195,22 @@ class NexoraVpnService : VpnService() {
                 code: Long,
                 message: String?
             ): Long {
+
+                val text = message
+                    ?.takeIf { it.isNotBlank() }
+                    ?: if (code == 0L) {
+                        "موتور Xray فعال شد."
+                    } else {
+                        "موتور Xray خطا گزارش کرد. کد: $code"
+                    }
+
                 reportStatus(
                     if (code == 0L) "running" else "error",
-                    message ?: ""
+                    text
                 )
+
+                Log.i(TAG, "Xray status $code: $text")
+
                 return 0
             }
         }
@@ -226,28 +250,34 @@ class NexoraVpnService : VpnService() {
         sendBroadcast(intent)
     }
 
-    private fun stopVpn() {
+    private fun stopVpn(
+        reportDisconnected: Boolean = true
+    ) {
 
         try {
             coreController?.stopLoop()
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping Xray", e)
         }
 
         coreController = null
 
         try {
             vpnInterface?.close()
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "Error closing VPN interface", e)
         }
 
         vpnInterface = null
 
         stopForeground(STOP_FOREGROUND_REMOVE)
 
-        reportStatus(
-            "disconnected",
-            "اتصال VPN قطع شد."
-        )
+        if (reportDisconnected) {
+            reportStatus(
+                "disconnected",
+                "اتصال VPN قطع شد."
+            )
+        }
 
         stopSelf()
     }
@@ -293,14 +323,17 @@ class NexoraVpnService : VpnService() {
     }
 
     override fun onDestroy() {
+
         try {
             coreController?.stopLoop()
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during service destruction", e)
         }
 
         try {
             vpnInterface?.close()
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "Error closing interface on destroy", e)
         }
 
         coreController = null
