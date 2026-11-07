@@ -393,6 +393,15 @@ private fun HomeScreen(
     var configMessage by remember { mutableStateOf("") }
     var vpnStatus by remember { mutableStateOf("disconnected") }
     var vpnMessage by remember { mutableStateOf("آماده اتصال") }
+    val vpnPermissionLauncher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.StartActivityForResult()
+) { result ->
+    if (result.resultCode == Activity.RESULT_OK) {
+        vpnMessage = "مجوز VPN دریافت شد."
+    } else {
+        vpnMessage = "مجوز اتصال VPN رد شد."
+    }
+}
     var servers by remember { mutableStateOf(emptyList<Server>()) }
     var selected by remember { mutableStateOf("de-01") }
     var mode by remember { mutableStateOf("normal") }
