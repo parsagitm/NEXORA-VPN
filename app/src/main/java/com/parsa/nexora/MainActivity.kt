@@ -393,6 +393,29 @@ private fun HomeScreen(
     var configMessage by remember { mutableStateOf("") }
     var vpnStatus by remember { mutableStateOf("disconnected") }
     var vpnMessage by remember { mutableStateOf("آماده اتصال") }
+    val startVpn = {
+    val jsonConfig = configPrefs.getString("config_json", null)
+
+    if (jsonConfig.isNullOrBlank()) {
+        vpnMessage = "ابتدا کانفیگ را ذخیره کن."
+    } else {
+        val intent = Intent(context, NexoraVpnService::class.java).apply {
+            action = NexoraVpnService.ACTION_START
+            putExtra(
+                NexoraVpnService.EXTRA_CONFIG_JSON,
+                jsonConfig
+            )
+        }
+
+        androidx.core.content.ContextCompat.startForegroundService(
+            context,
+            intent
+        )
+
+        vpnStatus = "connecting"
+        vpnMessage = "در حال اتصال..."
+    }
+}
     val vpnPermissionLauncher = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.StartActivityForResult()
 ) { result ->
