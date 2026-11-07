@@ -393,6 +393,39 @@ private fun HomeScreen(
     var configMessage by remember { mutableStateOf("") }
     var vpnStatus by remember { mutableStateOf("disconnected") }
     var vpnMessage by remember { mutableStateOf("آماده اتصال") }
+    DisposableEffect(context) {
+    val receiver = object : BroadcastReceiver() {
+        override fun onReceive(
+            context: Context?,
+            intent: Intent?
+        ) {
+            if (intent?.action == NexoraVpnService.ACTION_STATUS) {
+                vpnStatus = intent.getStringExtra("status")
+                    ?: "disconnected"
+
+                vpnMessage = intent.getStringExtra("message")
+                    ?: "وضعیت نامشخص"
+            }
+        }
+    }
+
+    val filter = IntentFilter(NexoraVpnService.ACTION_STATUS)
+
+    if (Build.VERSION.SDK_INT >= 33) {
+        context.registerReceiver(
+            receiver,
+            filter,
+            Context.RECEIVER_NOT_EXPORTED
+        )
+    } else {
+        @Suppress("DEPRECATION")
+        context.registerReceiver(receiver, filter)
+    }
+
+    onDispose {
+        context.unregisterReceiver(receiver)
+    }
+}
     val startVpn = {
     val jsonConfig = configPrefs.getString("config_json", null)
 
@@ -416,11 +449,11 @@ private fun HomeScreen(
         vpnMessage = "در حال اتصال..."
     }
 }
-    val vpnPermissionLauncher = rememberLauncherForActivityResult(
+val vpnPermissionLauncher = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.StartActivityForResult()
 ) { result ->
     if (result.resultCode == Activity.RESULT_OK) {
-        vpnMessage = "مجوز VPN دریافت شد."
+        startVpn()
     } else {
         vpnMessage = "مجوز اتصال VPN رد شد."
     }
