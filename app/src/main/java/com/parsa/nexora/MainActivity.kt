@@ -639,16 +639,28 @@ private fun HomeScreen(
                 Spacer(Modifier.height(8.dp))
                 Button(
                     onClick = {
-                        if (configText.isBlank()) {
-                            configMessage = "ابتدا کانفیگ را وارد کن."
-                        } else {
-                            configText = configText.trim()
-                            configPrefs.edit()
-                                .putString("config_text", configText)
-                                .apply()
-                            configMessage = "کانفیگ روی این گوشی ذخیره شد."
-                        }
-                    },
+                    
+    if (configText.isBlank()) {
+        configMessage = "ابتدا کانفیگ را وارد کن."
+    } else {
+        try {
+            val rawConfig = configText.trim()
+
+            val jsonConfig = VlessConfigParser.convert(rawConfig)
+
+            configPrefs.edit()
+                .putString("config_text", rawConfig)
+                .putString("config_json", jsonConfig)
+                .apply()
+
+            configText = rawConfig
+            configMessage = "کانفیگ VLESS معتبر است و ذخیره شد."
+
+        } catch (e: Exception) {
+            configMessage = e.message ?: "کانفیگ نامعتبر است."
+        }
+    }
+},
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Green,
