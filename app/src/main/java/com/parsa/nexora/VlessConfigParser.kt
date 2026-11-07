@@ -192,7 +192,6 @@ object VlessConfigParser {
             put("name", "xray0")
             put("MTU", 1500)
             put("userLevel", 8)
-            put("autoOutboundsInterface", "auto")
         }
     )
 }
