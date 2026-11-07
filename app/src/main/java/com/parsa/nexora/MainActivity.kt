@@ -729,7 +729,21 @@ private fun HomeScreen(
                         suffix = { Text("روز") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
+                    )                    
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = deviceCountInput,
+                    onValueChange = {
+                        if (it.length <= 2 && it.all(Char::isDigit)) {
+                            deviceCountInput = it
+        }
+    },
+                             modifier = Modifier.fillMaxWidth(),
+                             label = { Text("تعداد دستگاه‌های همزمان") },
+                             suffix = { Text("دستگاه") },
+                             singleLine = true,
+                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                       )
                     Spacer(Modifier.height(10.dp))
                     OutlinedTextField(
                         value = note,
