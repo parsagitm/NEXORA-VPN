@@ -782,6 +782,7 @@ private fun HomeScreen(
                                             put("mode", mode)
                                             put("volume", "$volume GB")
                                             put("expiry", "$expiry days")
+                                            put("device_count", deviceCount)
                                             put("note", note.trim())
                                         }
                                         val result = apiRequest(
