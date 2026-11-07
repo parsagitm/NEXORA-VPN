@@ -765,12 +765,14 @@ private fun HomeScreen(
                     onClick = {
                         val volume = volumeInput.toIntOrNull()
                         val expiry = expiryInput.toIntOrNull()
-                        val deviceCount = deviceCountlnput.tolntOrNull() ?: 0
+                        val deviceCount = deviceCountInput.toIntOrNull() ?: 0
                         when {
                             volume == null || volume !in 1..100000 ->
                                 apiStatus = "حجم باید بین ۱ تا ۱۰۰۰۰۰ باشد."
                             expiry == null || expiry !in 1..3650 ->
                                 apiStatus = "مدت باید بین ۱ تا ۳۶۵۰ روز باشد."
+                            deviceCount !in 1..10 ->
+                                apiStatus = "تعداد دستگاه باید بین ۱ تا ۱۰ باشد!"
                             else -> {
                                 sendingRequest = true
                                 scope.launch {
