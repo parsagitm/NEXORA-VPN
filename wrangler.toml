@@ -1,0 +1,8 @@
+name = "nexora-api"
+main = "worker.js"
+compatibility_date = "2026-11-08"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "nexora-users"
+database_id = "f5d60577-eda5-421e-8bcf-6f17e25f05e9"
